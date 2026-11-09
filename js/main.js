@@ -947,6 +947,7 @@ function normalizeEgyptionPhoneNum(phone) {
   if (!phone || typeof phone !== "string") {
     return "";
   }
+  // replace any of none num 
   var phone = phone.replace(/D/g, "");
   // 20
   if (phone.startsWith("20")) {
