@@ -872,27 +872,10 @@ function validateInputsWhenSubmit() {
     return false;
   }
 
-  return true;
-}
-function isPhoneExist(phone, currentIndex) {
-  for (var i = 0; i < contactList.length; i++) {
-    // بنتاكد إن الرقم موجود، ومش هو نفس الشخص اللي بنعدله حالياً
-    if (contactList[i].userNumber === phone && i !== currentIndex) {
-      return true; // الرقم متكرر بالفعل!
-    }
-  }
-  return false; // الرقم مش متكرر ومتاح للاستخدام
-}
-submitModalBtn.addEventListener("click", function () {
-  // 1. أولاً: نتأكد إن الـ Validation العادي سليم
-  if (!validateInputsWhenSubmit()) return;
-
-  var phoneValue = contactPhone.value.trim();
-
-  // 2. ثانياً: نتأكد هل الرقم متكرر ولا لأ؟
-  if (isPhoneExist(phoneValue, currentIndex)) {
-    Swal.fire({
-      text: "This phone number already exists for another contact!",
+  if (!isPhoneDuplicated(contactPhone.value, currentIndex)) {
+    showInvalid(contactPhone, "contactPhoneError");
+      Swal.fire({
+      text: `Phone number is dublicated`,
       icon: "error",
       showConfirmButton: true,
       customClass: {
@@ -901,30 +884,91 @@ submitModalBtn.addEventListener("click", function () {
       },
     });
     contactPhone.focus();
-    return; // يوقف الكود وما يحفظش
+    return false;
   }
+  return true;
+}
+// function isPhoneExist(phone, currentIndex) {
+//   for (var i = 0; i < contactList.length; i++) {
+//     // بنتاكد إن الرقم موجود، ومش هو نفس الشخص اللي بنعدله حالياً
+//     if (contactList[i].userNumber === phone && i !== currentIndex) {
+//       return true; // الرقم متكرر بالفعل!
+//     }
+//   }
+//   return false; // الرقم مش متكرر ومتاح للاستخدام
+// }
+// submitModalBtn.addEventListener("click", function () {
+//   // 1. أولاً: نتأكد إن الـ Validation العادي سليم
+//   if (!validateInputsWhenSubmit()) return;
 
-  // 3. لو كله تمام (سواء إضافة أو تعديل)، اكمل الحفظ عادي
-  if (currentIndex == null) {
-    addContact();
-    contactList.push(contactUser);
-    localStorage.setItem("contactsStorage", JSON.stringify(contactList));
-    displayContactUser();
-    clearInputs();
-    closeModal();
-    Swal.fire({
-      title: "Added!",
-      text: "Contact successfully added!",
-      icon: "success",
-      timer: 2000,
-      timerProgressBar: true,
-      showConfirmButton: false,
-    });
-  } else {
-    sendDataUpdated();
-    localStorage.setItem("contactsStorage", JSON.stringify(contactList));
-    closeModal();
-    editedAlert();
-    displayContactUser();
+//   var phoneValue = contactPhone.value.trim();
+
+//   // 2. ثانياً: نتأكد هل الرقم متكرر ولا لأ؟
+//   if (isPhoneExist(phoneValue, currentIndex)) {
+//     Swal.fire({
+//       text: "This phone number already exists for another contact!",
+//       icon: "error",
+//       showConfirmButton: true,
+//       customClass: {
+//         container: "swal-container",
+//         confirmButton: "btn btn-danger me-3",
+//       },
+//     });
+//     contactPhone.focus();
+//     return; // يوقف الكود وما يحفظش
+//   }
+
+// 3. لو كله تمام (سواء إضافة أو تعديل)، اكمل الحفظ عادي
+//   if (currentIndex == null) {
+//     addContact();
+//     contactList.push(contactUser);
+//     localStorage.setItem("contactsStorage", JSON.stringify(contactList));
+//     displayContactUser();
+//     clearInputs();
+//     closeModal();
+//     Swal.fire({
+//       title: "Added!",
+//       text: "Contact successfully added!",
+//       icon: "success",
+//       timer: 2000,
+//       timerProgressBar: true,
+//       showConfirmButton: false,
+//     });
+//   } else {
+//     sendDataUpdated();
+//     localStorage.setItem("contactsStorage", JSON.stringify(contactList));
+//     closeModal();
+//     editedAlert();
+//     displayContactUser();
+//   }
+// });
+
+function normalizeEgyptionPhoneNum(phone) {
+  if (!phone || typeof phone !== "string") {
+    return "";
   }
-});
+  var phone = phone.replace(/D/g, "");
+  // 20
+  if (phone.startsWith("20")) {
+    phone = "0" + phone.slice(2);
+  }
+  // 0020
+  if (phone.startsWith("0020")) {
+    phone = "0" + phone.slice(4);
+  }
+  return phone;
+}
+
+function isPhoneDuplicated(phone, index) {
+  var normalizeInput = normalizeEgyptionPhoneNum(phone);
+  for (let i = 0; i < contactList.length; i++) {
+    if (i === index) continue;
+    if (normalizedStored === normalizeInput) {
+      var normalizedStored = normalizeEgyptionPhoneNum(
+        contactList[i].contactPhone,
+      );
+      return true;
+    }
+  }
+  return false;
+}
