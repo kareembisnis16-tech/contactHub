@@ -83,7 +83,7 @@ contactModal.addEventListener("click", function (event) {
 var contactList;
 // *setup one*
 
-// var contactList = JSON.parse(localStorage.getItem("contactsStorage")) || [];
+var contactList = JSON.parse(localStorage.getItem("contactsStorage")) || [];
 // displayContactUser();
 
 // *setup two*
@@ -473,7 +473,7 @@ function togleEmergencyBtn(index) {
 searchInput.addEventListener("input", function () {
   var term = searchInput.value.trim().toLowerCase();
   var cartona = "";
-  for (let i = 0; i < contactList.length; i++) {
+  for (var i = 0; i < contactList.length; i++) {
     if (
       contactList[i].userName.toLowerCase().includes(term) ||
       contactList[i].userNumber.toLowerCase().includes(term) ||
@@ -822,12 +822,43 @@ contactEmail.addEventListener("input", function () {
 contactPhone.addEventListener("input", function () {
   validaitionFileds(contactPhone, validationRules.phone);
 });
+function normalizeEgyptionPhoneNum(phone) {
+  if (!phone || typeof phone !== "string") {
+    return "";
+  }
+  // 1. Fixed Regex: Added backslash to \D
+  var cleanedPhone = phone.replace(/\D/g, "");
+  
+  if (cleanedPhone.startsWith("0020")) {
+    cleanedPhone = "0" + cleanedPhone.slice(4);
+  } else if (cleanedPhone.startsWith("20")) {
+    cleanedPhone = "0" + cleanedPhone.slice(2);
+  }
+  
+  return cleanedPhone;
+}
+
+function isPhoneDuplicated(phone, index) {
+  var normalizeInput = normalizeEgyptionPhoneNum(phone);
+  
+  for (var i = 0; i < contactList.length; i++) {
+    if (i === index) continue;
+    
+    // 2. Define normalizedStored FIRST before comparison
+    var normalizedStored = normalizeEgyptionPhoneNum(
+      contactList[i].contactPhone || contactList[i].userNumber // حسب اسم الـ Property عندك في الأوبجكت
+    );
+    
+    if (normalizedStored === normalizeInput) {
+      return true; // الرقم متكرر فعلاً
+    }
+  }
+  return false; // الرقم مش متكرر
+}
 
 function validateInputsWhenSubmit() {
   var isNameValid = validaitionFileds(contactName, validationRules.name);
-
   var isEmailValid = validaitionFileds(contactEmail, validationRules.email);
-
   var isPhoneValid = validaitionFileds(contactPhone, validationRules.phone);
 
   if (!isNameValid) {
@@ -835,24 +866,18 @@ function validateInputsWhenSubmit() {
       text: validationRules.name.message,
       icon: "error",
       showConfirmButton: true,
-      customClass: {
-        container: "swal-container",
-        confirmButton: "btn btn-danger me-3",
-      },
+      customClass: { container: "swal-container", confirmButton: "btn btn-danger me-3" }
     });
     contactName.focus();
     return false;
   }
-  // لو المستخدم كتب فاليو ف الرقم فعلا بس هي مش مطابقه للرجيكس رجعلي false
+
   if (!isPhoneValid) {
     Swal.fire({
       text: validationRules.phone.message,
       icon: "error",
       showConfirmButton: true,
-      customClass: {
-        container: "swal-container",
-        confirmButton: "btn btn-danger me-3",
-      },
+      customClass: { container: "swal-container", confirmButton: "btn btn-danger me-3" }
     });
     contactPhone.focus();
     return false;
@@ -863,113 +888,24 @@ function validateInputsWhenSubmit() {
       text: validationRules.email.message,
       icon: "error",
       showConfirmButton: true,
-      customClass: {
-        container: "swal-container",
-        confirmButton: "btn btn-danger me-3",
-      },
+      customClass: { container: "swal-container", confirmButton: "btn btn-danger me-3" }
     });
     contactEmail.focus();
     return false;
   }
 
-  if (!isPhoneDuplicated(contactPhone.value, currentIndex)) {
+  // 3. Fixed: Check if it returns true (meaning it IS duplicated)
+  if (isPhoneDuplicated(contactPhone.value, currentIndex)) {
     showInvalid(contactPhone, "contactPhoneError");
-      Swal.fire({
-      text: `Phone number is dublicated`,
+    Swal.fire({
+      text: "Phone number is duplicated", // تصحيح الإملاء أيضاً
       icon: "error",
       showConfirmButton: true,
-      customClass: {
-        container: "swal-container",
-        confirmButton: "btn btn-danger me-3",
-      },
+      customClass: { container: "swal-container", confirmButton: "btn btn-danger me-3" }
     });
     contactPhone.focus();
     return false;
   }
+
   return true;
-}
-// function isPhoneExist(phone, currentIndex) {
-//   for (var i = 0; i < contactList.length; i++) {
-//     // بنتاكد إن الرقم موجود، ومش هو نفس الشخص اللي بنعدله حالياً
-//     if (contactList[i].userNumber === phone && i !== currentIndex) {
-//       return true; // الرقم متكرر بالفعل!
-//     }
-//   }
-//   return false; // الرقم مش متكرر ومتاح للاستخدام
-// }
-// submitModalBtn.addEventListener("click", function () {
-//   // 1. أولاً: نتأكد إن الـ Validation العادي سليم
-//   if (!validateInputsWhenSubmit()) return;
-
-//   var phoneValue = contactPhone.value.trim();
-
-//   // 2. ثانياً: نتأكد هل الرقم متكرر ولا لأ؟
-//   if (isPhoneExist(phoneValue, currentIndex)) {
-//     Swal.fire({
-//       text: "This phone number already exists for another contact!",
-//       icon: "error",
-//       showConfirmButton: true,
-//       customClass: {
-//         container: "swal-container",
-//         confirmButton: "btn btn-danger me-3",
-//       },
-//     });
-//     contactPhone.focus();
-//     return; // يوقف الكود وما يحفظش
-//   }
-
-// 3. لو كله تمام (سواء إضافة أو تعديل)، اكمل الحفظ عادي
-//   if (currentIndex == null) {
-//     addContact();
-//     contactList.push(contactUser);
-//     localStorage.setItem("contactsStorage", JSON.stringify(contactList));
-//     displayContactUser();
-//     clearInputs();
-//     closeModal();
-//     Swal.fire({
-//       title: "Added!",
-//       text: "Contact successfully added!",
-//       icon: "success",
-//       timer: 2000,
-//       timerProgressBar: true,
-//       showConfirmButton: false,
-//     });
-//   } else {
-//     sendDataUpdated();
-//     localStorage.setItem("contactsStorage", JSON.stringify(contactList));
-//     closeModal();
-//     editedAlert();
-//     displayContactUser();
-//   }
-// });
-
-function normalizeEgyptionPhoneNum(phone) {
-  if (!phone || typeof phone !== "string") {
-    return "";
-  }
-  // replace any of none num 
-  var phone = phone.replace(/D/g, "");
-  // 20
-  if (phone.startsWith("20")) {
-    phone = "0" + phone.slice(2);
-  }
-  // 0020
-  if (phone.startsWith("0020")) {
-    phone = "0" + phone.slice(4);
-  }
-  return phone;
-}
-
-function isPhoneDuplicated(phone, index) {
-  var normalizeInput = normalizeEgyptionPhoneNum(phone);
-  for (let i = 0; i < contactList.length; i++) {
-    if (i === index) continue;
-    if (normalizedStored === normalizeInput) {
-      var normalizedStored = normalizeEgyptionPhoneNum(
-        contactList[i].contactPhone,
-      );
-      return true;
-    }
-  }
-  return false;
 }
